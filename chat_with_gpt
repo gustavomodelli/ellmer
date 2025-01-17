@@ -1,0 +1,27 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(ellmer)
+
+Sys.setenv(
+  OPENAI_API_KEY = 'xxx'
+)
+```
+
+# Chat gpt
+
+```{r}
+
+vetores <- c('Doador falecido 35 anos, causa morte TCE','Doador 60 anos causa morte por AVE')
+
+chat <- chat_openai(model = 'gpt-3.5-turbo',
+                    
+                    system_prompt = 'considere que você é um médico especialista em transplante. Extraia do texto a idade do doador e causa morte. coloque no formato de datatable'
+                    )
+
+chat$chat(vetores)
+
+
+```
+
