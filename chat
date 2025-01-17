@@ -1,0 +1,97 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(ellmer)
+
+Sys.setenv(
+  OPENAI_API_KEY = 'xx',
+  
+   GOOGLE_API_KEY = 'xx'
+)
+```
+
+# Chat gpt
+
+```{r}
+
+vetores <- c('Doador falecido 35 anos, causa morte TCE','Doador 60 anos causa morte por AVE')
+
+chat <- chat_openai(model = 'gpt-3.5-turbo',
+                    
+                    system_prompt = 'considere que você é um médico especialista em transplante. Extraia do texto a idade do doador e causa morte. coloque no formato de datatable. Salve o resultado como datafroame do R'
+                    )
+
+chat$chat(vetores)
+
+
+```
+
+```{r}
+vetores <- c('Doador falecido 35 anos, causa morte TCE','Doador 60 anos causa morte por AVE')
+
+chat_google <- chat_gemini(system_prompt = 'considere que você é um médico especialista em transplante. Extraia do texto a idade do doador e a provavel causa morte informada no texto. Caso não haja informações suficientes deixe em branco. Faça uma tabela: idade provavel, causa morte, infecçao associada, etilismo, uso de drogas ilícitas, apresentou PCR. coloque no formato de datatable, apresente apenas uma tabela formato R com varias linhas')
+
+chat_google$chat(vetores)
+
+```
+
+
+```{r}
+library(readxl)
+library(janitor)
+
+doador <- read_xlsx('Doador_Historia.xlsx') %>% 
+  clean_names()
+
+glimpse(doador)
+
+1
+doador_head <- head(doador, 20)
+```
+
+
+```{r}
+chat_google$chat(doador_head$historia_evolucao_clinica)
+```
+
+# especialista em transplante
+
+
+```{r}
+vetores <- c('Paciente 30 anos, masculino, 2 meses de transplante, sem queixas, retorno rotina, creatinina de 1.2mg/dl, tacrolimo de 7ng/dl')
+
+chat_google <- chat_gemini(system_prompt = 'considere que você é um médico especialista em transplante. Avalia a consulta medica e sugira uma data de retorno e conduta. Considere o tempo de transplante e os protocolos de manejo de transplante')
+
+chat_google$chat(vetores)
+```
+
+# especidalista em litíase
+
+```{r}
+
+
+paciente <- 'Paciente 30 anos com episódio único de litíase'
+
+especialista <- 'considere que voce é um nefrologista especialista e esta avaliando se há necessidade de encaminhamento para o especialista ou não. Considere o protocolo de encaminhamento litáise a seguir'
+protocolo_litiase <- ' Litíase renal
+Condições clínicas que indicam a necessidade de encaminhamento para emergência:
+ litíase renal com obstrução de trato urinário provocando hidronefrose, sepse urinária e/ou dor incontrolável com tratamento otimizado na APS (atencao primaria).
+Condições clínicas que indicam a necessidade de encaminhamento para nefrologia:
+ nefrolitíase recorrente com causa metabólica identificada e com indicação de tratamento farmacológico que
+não pode ser realizado na APS; ou
+ impossibilidade de investigar etiologia dos cálculos com exame de eletrólitos na urina de 24 horas e exames
+séricos.
+Condições clínicas que indicam a necessidade de encaminhamento para urologia:
+ cálculo ureteral maior que 10 mm; ou
+ cálculo ureteral entre 4 e 10 mm que não foi eliminado após 6 semanas de tratamento clínico; ou
+ cálculo vesical; ou
+ cálculo renal sintomático (episódios recorrentes de dor, hematúria ou infecção de trato urinário); ou
+ cálculo renal assintomático maior que 10 mm.
+'
+
+chat_google <- chat_gemini(system_prompt = c(especialista,protocolo_litiase))
+
+chat_google$chat(paciente)
+```
+
