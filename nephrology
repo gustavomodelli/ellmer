@@ -1,0 +1,91 @@
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(tidyverse)
+library(ellmer)
+
+Sys.setenv(
+  OPENAI_API_KEY = 'xx',
+  
+   GOOGLE_API_KEY = 'xx'
+)
+
+# especidalista em Nefrologia
+
+```{r}
+
+
+paciente <- c('Paciente de 94 anos, portadora de DRC, a qual vem progredindo e tornou-se estadio IV (clearance de creatinina de 27,4 atualmente). Solicitamos, gentilmente, avaliação da mesma para possivel acompanhamento','Paciente em seguimento com a Endocrinologia devido a incidentaloma adrenal. Afastado Cushing, Hiperaldo e Feocromocitoma. Faz acompanhamento com a cardiologia devido a DAC com stent convencional em CD em 2015. Dado que lesão apresenta HU de 36 e Washout absoluto menor que 60, haveria indicação cirurgica se condições clínica adequadas; porém em vista do clearance de Cr de 32ml/min/1,73m2  e do antecedente de DAC encaminhameno paciente para avaliação da Nefrologia',
+              'Paciente com diabetes mellitus tipo II desde 1992 com nefropatia incipiente e com ClCr atual de 33.
+Solicitamos avaliação e acompanhamento do caso para manejo de complicações de DRC estadio IIIb.
+','paciente masculino de 40 anos, creatinina de 1.1mg/dl, sem proteinuria e hipertensão de 140x90')
+
+especialista <- 'considere que voce é um nefrologista especialista e esta avaliando se há necessidade de encaminhamento para o especialista ou não. Considere o protocolo de encaminhamento a seguir considerando as categorias: doença renal crônica, litíase, hipertensão, infecção do trato urinário (ITU), diabetes ou cistos. Responda  com breve resumo da indicação, patologia(DRC, ITU, cisto, litíase, diabetes, hipertensão ou outros), indicação (sim/nao/incompleto), faça comentários a respieto do caso clinico com possiveis sugestões de tratamento. Caso não haja TGF calculada faça o calculo usado CKD-EPI'
+
+
+protocolo_litiase <- ' Litíase renal:
+Condições clínicas que indicam a necessidade de encaminhamento para emergência:
+ litíase renal com obstrução de trato urinário provocando hidronefrose, sepse urinária e/ou dor incontrolável com tratamento otimizado na APS (atencao primaria).
+Condições clínicas que indicam a necessidade de encaminhamento para nefrologia:
+ nefrolitíase recorrente com causa metabólica identificada e com indicação de tratamento farmacológico que
+não pode ser realizado na APS; ou
+ impossibilidade de investigar etiologia dos cálculos com exame de eletrólitos na urina de 24 horas e exames
+séricos.
+Condições clínicas que indicam a necessidade de encaminhamento para urologia:
+ cálculo ureteral maior que 10 mm; ou
+ cálculo ureteral entre 4 e 10 mm que não foi eliminado após 6 semanas de tratamento clínico; ou
+ cálculo vesical; ou
+ cálculo renal sintomático (episódios recorrentes de dor, hematúria ou infecção de trato urinário); ou
+ cálculo renal assintomático maior que 10 mm.
+'
+
+protocolo_drc <- 'Doença renal crônica:
+Condições clínicas que indicam a necessidade de encaminhamento para nefrologia:
+ taxa de Filtração Glomerular (TFG) < 30 ml/min/1,73 m2
+(estágios 4 e 5) (ver quadro 1 no anexo) ; ou
+ proteinúria (ver quadro 2 no anexo); ou
+ hematúria persistente (confirmada em dois exames de EQU/EAS/Urina tipo 1, com 8 semanas de intervalo
+entre os mesmos e pesquisa de hemácias dismórficas positiva); ou
+ alterações anatômicas que provoquem lesão ou perda de função renal (ver quadro 3 no anexo); ou
+ perda rápida da função renal (>5 ml/min/1,73 m2 em 6 meses, com uma TFG <60 ml/min/1,73m2
+, confirmado
+em dois exames); ou
+ presença de cilindros com potencial patológico (céreos, largos, graxos, epiteliais, hemáticos ou leucocitários)'
+
+protocolo_hipertensão <- 'Hipertensão arterial sistêmica: Condições clínicas que indicam a necessidade de encaminhamento para nefrologia ou cardiologia ou
+endocrinologia (conforme a principal suspeita clínica da hipertensão secundária):
+ suspeita de hipertensão secundária; ou
+ falta de controle da pressão com no mínimo três medicações anti-hipertensivas em dose plena, após avaliação
+da adesão.
+'
+
+protocolo_itu <- '– Infecção urinária recorrente:
+Condições clínicas que indicam a necessidade de encaminhamento para nefrologia:
+ ITU recorrente (três ou mais infecções urinárias no período de um ano) mesmo com profilaxia adequada, após
+exclusão de causas anatômicas urológicas ou ginecológicas.
+Condições clínicas que indicam a necessidade de encaminhamento para urologia:
+ alteração anatômica no trato urinário que provoque ITU recorrente.
+Condições clínicas que indicam a necessidade de encaminhamento para ginecologia:
+ alteração anatômica ginecológica que provoque ITU recorrente.'
+
+protocolo_diabetes <- 'Diabetes mellitus:
+Condições clínicas que indicam a necessidade de encaminhamento para nefrologia:
+ pacientes com taxa de filtração glomerular < 30 ml/min/1,73 m2
+(estágios 4 e 5) ; ou
+ proteinúria (macroalbuminúria) ; ou
+ perda rápida da função renal (>5 mL/min/1,73 m2 em um período de 6 meses, com uma TFG <60
+mL/min/1,73 m2 confirmado em dois exames)'
+
+protocolo_cisto <- 'Cistos/doença policística renal:
+Condições clínicas que indicam a necessidade de encaminhamento para nefrologia:
+ suspeita de doença policística renal (ver quadro 5, no anexo).
+Condições clínicas que indicam a necessidade de encaminhamento para urologia:
+ cistos com alterações sugestivas de malignidade (achados ecográficos como paredes espessas e
+irregulares, septações, calcificações ou resultado de tomografia com classificação de Bosniak maior ou
+igual a 2F); ou
+ cistos simples sintomáticos (dor lombar, hematúria persistente, obstrução de via urinária).
+'
+
+chat_google <- chat_gemini(system_prompt = c(especialista,protocolo_litiase, protocolo_drc, protocolo_hipertensão, protocolo_itu, protocolo_diabetes))
+
+chat_google$chat(paciente)
+```
+
