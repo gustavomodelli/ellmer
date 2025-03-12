@@ -1,0 +1,115 @@
+import openai
+import speech_recognition as sr
+import pyttsx3
+
+# OpenAI API Key (Replace with your actual API key)
+OPENAI_API_KEY = "your_api_key_here"
+
+# Initialize TTS Engine
+engine = pyttsx3.init()
+
+# Function to speak text
+def speak(text):
+    engine.say(text)
+    engine.runAndWait()
+
+# Function to listen to user input
+def listen_to_user():
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        print("Listening...")
+        recognizer.adjust_for_ambient_noise(source)
+        audio = recognizer.listen(source)
+
+    try:
+        text = recognizer.recognize_google(audio)
+        print(f"You said: {text}")
+        return text
+    except sr.UnknownValueError:
+        print("Sorry, I couldn't understand.")
+        speak("Sorry, I couldn't understand. Can you repeat that?")
+        return listen_to_user()
+    except sr.RequestError:
+        print("Error with the speech recognition service.")
+        return None
+
+# Function to interact with GPT-4o
+def chat_with_gpt(prompt):
+    response = openai.ChatCompletion.create(
+        model="gpt-4o",
+        messages=[{"role": "user", "content": prompt}],
+        api_key=OPENAI_API_KEY
+    )
+    return response['choices'][0]['message']['content']
+
+# Function to extract patient data from structured text
+def extract_patient_info(raw_text):
+    patient_info = {}
+    fields = raw_text.split(";")
+    
+    for field in fields:
+        key_value = field.split(":")
+        if len(key_value) == 2:
+            key, value = key_value[0].strip(), key_value[1].strip()
+            patient_info[key.lower()] = value
+    
+    return patient_info
+
+# Function to collect additional patient details
+def collect_additional_info(patient_info):
+    speak(f"Hello {patient_info.get('name', 'Patient')}, I have your medical records.")
+    
+    speak("Can you describe your current symptoms?")
+    symptoms = listen_to_user()
+
+    speak("What is your preferred date for the appointment?")
+    appointment_date = listen_to_user()
+
+    speak("What time do you prefer?")
+    appointment_time = listen_to_user()
+
+    # Add new details to patient record
+    patient_info["symptoms"] = symptoms
+    patient_info["preferred appointment date"] = appointment_date
+    patient_info["preferred time"] = appointment_time
+
+    # Format final structured summary
+    summary = f"""
+    Patient Name: {patient_info.get('name', 'Unknown')}
+    Age: {patient_info.get('age', 'Unknown')}
+    Medical History: {patient_info.get('medical history', 'None')}
+    Symptoms: {patient_info.get('symptoms', 'Not provided')}
+    Preferred Appointment Date: {patient_info.get('preferred appointment date', 'Not specified')}
+    Preferred Time: {patient_info.get('preferred time', 'Not specified')}
+    """
+
+    # Summarize with GPT-4o
+    summary_prompt = f"Summarize the following patient medical details in a structured, professional format:\n{summary}"
+    formatted_summary = chat_with_gpt(summary_prompt)
+
+    speak("Here is the medical summary for your appointment. Please confirm.")
+    print(formatted_summary)
+    speak(formatted_summary)
+
+    speak("Would you like to make any corrections?")
+    correction_needed = listen_to_user().lower()
+
+    if "yes" in correction_needed:
+        speak("Let's redo the details.")
+        return collect_additional_info(patient_info)  # Restart
+
+    speak("Thank you! Your appointment request is being processed.")
+
+    return formatted_summary
+
+# Run the process with preloaded patient information
+if __name__ == "__main__":
+    # Example input: preloaded patient history
+    raw_patient_data = "patient 01; name: Jhon; age: 20ys; medical history: hypertension and diabetes"
+
+    patient_info = extract_patient_info(raw_patient_data)
+    final_summary = collect_additional_info(patient_info)
+
+    print("\nFinal Medical Summary for Appointment:\n")
+    print(final_summary)
+    speak("Your medical information has been saved successfully.")
