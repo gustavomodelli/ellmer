@@ -3,7 +3,7 @@ library(ellmer)
 
 Sys.setenv(
   
-  GOOGLE_API_KEY = 'AIzaSyClCeS4SiCDyuCRVL2XPum6KWTEHSWC0a8'
+  GOOGLE_API_KEY = 'xx'
 )
 
 # Define the system prompt for the chatbot
