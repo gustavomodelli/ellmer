@@ -1,0 +1,67 @@
+library(shiny)
+library(ellmer)
+library(pdftools)  # for PDF text extraction
+
+# Set your OpenAI API key
+Sys.setenv(
+  OPENAI_API_KEY = 'xx'
+)
+
+# Initialize GPT chat object
+chat <- chat_openai(
+  model = "gpt-4o",
+  system_prompt = "You are a physician with expertise in thrombotic microangiopathies (TMA), including conditions such as aHUS, TTP, and secondary TMAs. Based on the clinical presentation, laboratory findings, and any available imaging or pathology data, critically assess the most likely diagnoses, rank differential possibilities, and suggest further diagnostic tests or management steps."
+)
+
+# UI
+ui <- fluidPage(
+  titlePanel("TMA Diagnostic Assistant"),
+  
+  sidebarLayout(
+    sidebarPanel(
+      textAreaInput("case_input", "Enter Patient History and Lab Data:", 
+                    placeholder = "Type or upload case information here...", 
+                    height = "300px"),
+      fileInput("file_input", "Upload .txt or .pdf File", accept = c(".txt", ".pdf")),
+      actionButton("analyze_btn", "Analyze Case", class = "btn-primary")
+    ),
+    
+    mainPanel(
+      h4("AI Diagnostic Reasoning:"),
+      verbatimTextOutput("chat_output")
+    )
+  )
+)
+
+# Server
+server <- function(input, output, session) {
+  
+  observeEvent(input$file_input, {
+    req(input$file_input)
+    file_path <- input$file_input$datapath
+    file_ext <- tools::file_ext(file_path)
+    
+    if (tolower(file_ext) == "txt") {
+      file_text <- readLines(file_path, warn = FALSE, encoding = "UTF-8")
+    } else if (tolower(file_ext) == "pdf") {
+      file_text <- pdftools::pdf_text(file_path)
+    } else {
+      file_text <- "Unsupported file type."
+    }
+    
+    updateTextAreaInput(session, "case_input", value = paste(file_text, collapse = "\n"))
+  })
+  
+  observeEvent(input$analyze_btn, {
+    req(input$case_input)
+    
+    result <- chat$chat(input$case_input)
+    
+    output$chat_output <- renderText({
+      result
+    })
+  })
+}
+
+# Run the app
+shinyApp(ui, server)
